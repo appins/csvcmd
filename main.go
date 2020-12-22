@@ -1,12 +1,12 @@
 package main
 
 import (
-	"encoding/csv"
 	"flag"
 	"fmt"
 	"os"
 
 	"github.com/appins/csvcmd/pkg/csvfilter"
+	"github.com/appins/csvcmd/pkg/csvtrunc"
 )
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 
 	} else {
 		// In the case of no files being specified, read from stdin
-		csvReader := csv.NewReader(os.Stdin)
+		csvReader, _ := csvtrunc.NewReader(os.Stdin, startLine, endLine)
 		filters := []func([]string) bool{}
 		filteredReader := csvfilter.NewReader(csvReader, filters, false)
 		for filteredReader.Scan() {
