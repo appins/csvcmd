@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -29,7 +30,7 @@ func main() {
 	flag.IntVar(&endLine, "e", -1, "The last line, after the initial column line, that should be read (inclusive, 1-based index)")
 
 	var filtersString string
-	flag.StringVar(&filtersString, "f", "", "Filters on columns, see GitHub for examples")
+	flag.StringVar(&filtersString, "filter", "", "Filters on columns, see GitHub for examples")
 
 	flag.Parse()
 
@@ -37,15 +38,26 @@ func main() {
 
 	// The files that should be read
 	if len(flag.Args()) != 0 {
-		printNames := len(flag.Args()) > 1
+		files := []io.Reader{}
+		// Open the files and add them to the files slice, to ensure that
+		// we can open all of them
 		for _, fil := range flag.Args() {
-			fmt.Printf("%s %s %t \n", fil, "hello", printNames)
+			fp, err := os.Open(fil)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+				return
+			}
+			files = append(files, io.Reader(fp))
+			defer fp.Close()
+		}
+		// Then we call process file with each file
+		for i, fil := range files {
+			processFile(io.Reader(fil), flag.Args()[i], opts)
 		}
 
 	} else {
 		// In the case of no files being specified, read from stdin
-		csvReader, cols, _ := csvtrunc.NewReader(os.Stdin, startLine, endLine)
-		processFile(csvReader, cols, opts)
+		processFile(io.Reader(os.Stdin), "STDIN", opts)
 	}
 
 }
@@ -88,14 +100,19 @@ func genFilters(filterString string, cols []string) ([]func([]string) bool, erro
 
 }
 
-func processFile(csvReader *csvtrunc.Reader, cols []string, opts options) {
+func processFile(fil io.Reader, fname string, opts options) {
+	csvReader, cols, err := csvtrunc.NewReader(fil, opts.startLine, opts.endLine)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error processing %s: %s\n", fname, err)
+		return
+	}
 
 	filters, err := genFilters(opts.filtersString, cols)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintf(os.Stderr, "Error processing %s: %s\n", fname, err)
 		return
 	}
-	filteredReader := csvfilter.NewReader(csvReader, filters, false)
+	filteredReader := csvfilter.NewReader(csvReader, filters, true)
 	for filteredReader.Scan() {
 		fmt.Println(filteredReader.Row())
 	}
