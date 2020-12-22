@@ -24,10 +24,10 @@ func main() {
 	flag.BoolVar(&humanReadable, "h", false, "Print in an easy to read format")
 
 	var startLine int
-	flag.IntVar(&startLine, "s", 0, "The first line, after the initial column line, that should be read (inclusive, 1-based index)")
+	flag.IntVar(&startLine, "start", 0, "The first line, after the initial column line, that should be read (inclusive, 1-based index)")
 
 	var endLine int
-	flag.IntVar(&endLine, "e", -1, "The last line, after the initial column line, that should be read (inclusive, 1-based index)")
+	flag.IntVar(&endLine, "end", -1, "The last line, after the initial column line, that should be read (inclusive, 1-based index)")
 
 	var filtersString string
 	flag.StringVar(&filtersString, "filter", "", "Filters on columns, see GitHub for examples")
