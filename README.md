@@ -20,11 +20,11 @@ Selection:
 	--start=int	Specify the first line (inclusive) that should be read
 
 	--end=int	Specify the last line (inclusive) that should be read
-			Note: To control how many lines are read pipe command 
+			Note: To control how many lines are read pipe command
 			output to head or tail. try `| head -nXX` where XX=#lines
 
 	--filter="..."	Specify a set of filters that a row needs to meet to
-			be printed. See the filters section at 
+			be printed. See the filters section at
 			github.com/appins/csvcmd
 
 Output:
