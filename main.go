@@ -21,44 +21,15 @@ type options struct {
 }
 
 // The built in CSV writer satisfies this interface, and so does the
-// type for formatted CSV below
+// formattedWrite type below. One writes raw CSV, the other writes
+// formatted CSV
 type lineWriter interface {
 	Write([]string) error
 	Flush()
 }
 
 type formattedWrite struct {
-	Widths []int
-}
-
-// Write is defined on our formattedWrite struct as displaying each column with
-// a fixed amount of space around it
-func (w *formattedWrite) Write(row []string) error {
-	// We overwrite lengths if they're empty
-	if len(w.Widths) == 0 {
-		w.Widths = genWidths(row)
-	}
-	for i, j := range row {
-		// Limit the width to either Widths[column] or the cells lenth itself
-		// Whichever is less
-		width := w.Widths[i]
-		if width >= len(j) {
-			width = len(j)
-		} else {
-			j = j[:width-3] + "..."
-		}
-		// Store the original width, so we can equally size columns
-		ow := w.Widths[i]
-		fmt.Print(j[:width] + strings.Repeat(" ", ow-width) + " ")
-	}
-	fmt.Print("\n")
-	return nil
-}
-
-// As flush is called exactly once per file, we can use it to reset the widths
-// Flush is called on the csv.Writer so that the text actually displays in the console
-func (w *formattedWrite) Flush() {
-	w.Widths = []int{}
+	widths []int
 }
 
 func main() {
@@ -66,7 +37,7 @@ func main() {
 	flag.BoolVar(&humanReadable, "h", false, "Print in an easy to read format")
 
 	var startLine int
-	flag.IntVar(&startLine, "start", 0, "The first line, after the initial column line, that should be read (inclusive, 1-based index)")
+	flag.IntVar(&startLine, "start", 1, "The first line, after the initial column line, that should be read (inclusive, 1-based index)")
 
 	var endLine int
 	flag.IntVar(&endLine, "end", -1, "The last line, after the initial column line, that should be read (inclusive, 1-based index)")
@@ -164,7 +135,7 @@ func genFilters(filterString string, cols []string) ([]func([]string) bool, erro
 func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
 	csvReader, cols, err := csvtrunc.NewReader(fil, opts.startLine, opts.endLine)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error processing %s: %s\n", fname, err)
+		fmt.Fprintf(os.Stderr, "Error processing %s: %s while searching for columns\n", fname, err)
 		return
 	}
 	output.Write(cols)
@@ -184,4 +155,34 @@ func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
 
 	output.Flush()
 
+}
+
+// Write is defined on our formattedWrite struct as displaying each column with
+// a fixed amount of space around it
+func (w *formattedWrite) Write(row []string) error {
+	// We overwrite lengths if they're empty
+	if len(w.widths) == 0 {
+		w.widths = genWidths(row)
+	}
+	for i, j := range row {
+		// Limit the width to either widths[column] or the cells lenth itself
+		// Whichever is less
+		width := w.widths[i]
+		if width >= len(j) {
+			width = len(j)
+		} else {
+			j = j[:width-3] + "..."
+		}
+		// Store the original width, so we can equally size columns
+		ow := w.widths[i]
+		fmt.Print(j[:width] + strings.Repeat(" ", ow-width) + " ")
+	}
+	fmt.Print("\n")
+	return nil
+}
+
+// As flush is called exactly once per file, we can use it to reset the widths
+// Flush is called on the csv.Writer so that the text actually displays in the console
+func (w *formattedWrite) Flush() {
+	w.widths = []int{}
 }
