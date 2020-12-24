@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,6 +20,47 @@ type options struct {
 	filtersString string
 }
 
+// The built in CSV writer satisfies this interface, and so does the
+// type for formatted CSV below
+type lineWriter interface {
+	Write([]string) error
+	Flush()
+}
+
+type formattedWrite struct {
+	Widths []int
+}
+
+// Write is defined on our formattedWrite struct as displaying each column with
+// a fixed amount of space around it
+func (w *formattedWrite) Write(row []string) error {
+	// We overwrite lengths if they're empty
+	if len(w.Widths) == 0 {
+		w.Widths = genWidths(row)
+	}
+	for i, j := range row {
+		// Limit the width to either Widths[column] or the cells lenth itself
+		// Whichever is less
+		width := w.Widths[i]
+		if width >= len(j) {
+			width = len(j)
+		} else {
+			j = j[:width-3] + "..."
+		}
+		// Store the original width, so we can equally size columns
+		ow := w.Widths[i]
+		fmt.Print(j[:width] + strings.Repeat(" ", ow-width) + " ")
+	}
+	fmt.Print("\n")
+	return nil
+}
+
+// As flush is called exactly once per file, we can use it to reset the widths
+// Flush is called on the csv.Writer so that the text actually displays in the console
+func (w *formattedWrite) Flush() {
+	w.Widths = []int{}
+}
+
 func main() {
 	var humanReadable bool
 	flag.BoolVar(&humanReadable, "h", false, "Print in an easy to read format")
@@ -35,6 +77,12 @@ func main() {
 	flag.Parse()
 
 	opts := options{humanReadable, startLine, endLine, filtersString}
+	var writer lineWriter
+	if humanReadable {
+		writer = &formattedWrite{}
+	} else {
+		writer = csv.NewWriter(os.Stdout)
+	}
 
 	// The files that should be read
 	if len(flag.Args()) != 0 {
@@ -52,14 +100,27 @@ func main() {
 		}
 		// Then we call process file with each file
 		for i, fil := range files {
-			processFile(io.Reader(fil), flag.Args()[i], opts)
+			processFile(io.Reader(fil), flag.Args()[i], opts, writer)
 		}
 
 	} else {
 		// In the case of no files being specified, read from stdin
-		processFile(io.Reader(os.Stdin), "STDIN", opts)
+		processFile(io.Reader(os.Stdin), "STDIN", opts, writer)
 	}
 
+}
+
+func genWidths(row []string) []int {
+	var lengths []int
+	for _, j := range row {
+		if len(j) < 10 {
+			lengths = append(lengths, len(j))
+		} else {
+			lengths = append(lengths, 10)
+		}
+	}
+
+	return lengths
 }
 
 func genFilters(filterString string, cols []string) ([]func([]string) bool, error) {
@@ -100,12 +161,13 @@ func genFilters(filterString string, cols []string) ([]func([]string) bool, erro
 
 }
 
-func processFile(fil io.Reader, fname string, opts options) {
+func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
 	csvReader, cols, err := csvtrunc.NewReader(fil, opts.startLine, opts.endLine)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error processing %s: %s\n", fname, err)
 		return
 	}
+	output.Write(cols)
 
 	filters, err := genFilters(opts.filtersString, cols)
 	if err != nil {
@@ -114,7 +176,12 @@ func processFile(fil io.Reader, fname string, opts options) {
 	}
 	filteredReader := csvfilter.NewReader(csvReader, filters, true)
 	for filteredReader.Scan() {
-		fmt.Println(filteredReader.Row())
+		err := output.Write(filteredReader.Row())
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error processing %s: %s\n", fname, err)
+		}
 	}
+
+	output.Flush()
 
 }
