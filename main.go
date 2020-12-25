@@ -19,6 +19,7 @@ type options struct {
 	endLine       int
 	filtersString string
 	orFilter      bool
+	columns       string
 }
 
 // The built in CSV writer satisfies this interface, and so does the
@@ -34,17 +35,14 @@ type formattedWrite struct {
 }
 
 func main() {
+	// Create an instance of the options struct and populate it with our command line ags
 	var opts options
-
 	flag.BoolVar(&opts.humanReadable, "h", false, "Print in an easy to read format")
-
 	flag.IntVar(&opts.startLine, "start", 1, "The first line, after the initial column line, that should be read (inclusive, 1-based index)")
-
 	flag.IntVar(&opts.endLine, "end", -1, "The last line, after the initial column line, that should be read (inclusive, 1-based index)")
-
 	flag.StringVar(&opts.filtersString, "filter", "", "Filters on columns, see GitHub for examples")
-
 	flag.BoolVar(&opts.orFilter, "or", false, "Line will print if any single filter is matched")
+	flag.StringVar(&opts.columns, "shown", "", "Which columns should be output")
 
 	flag.Parse()
 
@@ -131,7 +129,49 @@ func genFilters(filterString string, cols []string) ([]func([]string) bool, erro
 	}
 
 	return filters, nil
+}
 
+func genColumns(columnFlag string, cols []string) ([]bool, error) {
+	// Create a map of the columns, just like in genFilters
+	colsToInt := make(map[string]int)
+	for i, col := range cols {
+		colsToInt[col] = i
+		col_num := fmt.Sprintf("_%d", i+1)
+		colsToInt[col_num] = i
+	}
+
+	// Each column has a bool assocaited with it, if it should show or not
+	enabled := make([]bool, len(cols))
+
+	// If nothing specified, we just show all the columns (each bool in the array = true)
+	if len(columnFlag) == 0 {
+		for i := range enabled {
+			enabled[i] = true
+		}
+	} else {
+		// Otherwise we split up the flag by ; and set the bools for the columns in that list
+		shownCols := strings.Split(columnFlag, ";")
+		for _, j := range shownCols {
+			if col, ok := colsToInt[j]; ok {
+				enabled[col] = true
+			} else {
+				// If we can't find the column we error out
+				return enabled, errors.New("Couldn't find column " + j)
+			}
+		}
+	}
+	return enabled, nil
+}
+
+func showColumns(enabled []bool, row []string) []string {
+	var result []string
+	for i, j := range row {
+		if enabled[i] {
+			result = append(result, j)
+		}
+	}
+
+	return result
 }
 
 func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
@@ -141,21 +181,33 @@ func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
 		fmt.Fprintf(os.Stderr, "Error processing %s: %s while searching for columns\n", fname, err)
 		return
 	}
-	// Write the columns. This will automatically set the widths for the formatted writer
-	output.Write(cols)
 
-	// Create a filtered reader from the csv reader, using the csvfilter package
+	// Create the filter functions, that is, functions that take a row and return bools
 	filters, err := genFilters(opts.filtersString, cols)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error processing %s: %s\n", fname, err)
 		return
 	}
 
+	// Create the enabled column list
+	enabled, err := genColumns(opts.columns, cols)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error processing %s: %s\n", fname, err)
+		return
+	}
+
+	// Write the columns. This will automatically set the widths for the formatted writer
+	// Notice that this is run through the show columns function, which limits the columns
+	// that come out if it
+	output.Write(showColumns(enabled, cols))
+
 	// Create a filtered reader, which only reads out rows that meet the filter
 	// criteria. Then we read all the rows from it into output
 	filteredReader := csvfilter.NewReader(csvReader, filters, !opts.orFilter)
 	for filteredReader.Scan() {
-		err := output.Write(filteredReader.Row())
+		// We only show the columns that we processed with showColumns
+		processed := showColumns(enabled, filteredReader.Row())
+		err := output.Write(processed)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error processing %s: %s\n", fname, err)
 		}
