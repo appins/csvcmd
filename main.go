@@ -18,6 +18,7 @@ type options struct {
 	startLine     int
 	endLine       int
 	filtersString string
+	orFilter      bool
 }
 
 // The built in CSV writer satisfies this interface, and so does the
@@ -33,23 +34,22 @@ type formattedWrite struct {
 }
 
 func main() {
-	var humanReadable bool
-	flag.BoolVar(&humanReadable, "h", false, "Print in an easy to read format")
+	var opts options
 
-	var startLine int
-	flag.IntVar(&startLine, "start", 1, "The first line, after the initial column line, that should be read (inclusive, 1-based index)")
+	flag.BoolVar(&opts.humanReadable, "h", false, "Print in an easy to read format")
 
-	var endLine int
-	flag.IntVar(&endLine, "end", -1, "The last line, after the initial column line, that should be read (inclusive, 1-based index)")
+	flag.IntVar(&opts.startLine, "start", 1, "The first line, after the initial column line, that should be read (inclusive, 1-based index)")
 
-	var filtersString string
-	flag.StringVar(&filtersString, "filter", "", "Filters on columns, see GitHub for examples")
+	flag.IntVar(&opts.endLine, "end", -1, "The last line, after the initial column line, that should be read (inclusive, 1-based index)")
+
+	flag.StringVar(&opts.filtersString, "filter", "", "Filters on columns, see GitHub for examples")
+
+	flag.BoolVar(&opts.orFilter, "or", false, "Line will print if any single filter is matched")
 
 	flag.Parse()
 
-	opts := options{humanReadable, startLine, endLine, filtersString}
 	var writer lineWriter
-	if humanReadable {
+	if opts.humanReadable {
 		writer = &formattedWrite{}
 	} else {
 		writer = csv.NewWriter(os.Stdout)
@@ -100,6 +100,8 @@ func genFilters(filterString string, cols []string) ([]func([]string) bool, erro
 	colsToInt := make(map[string]int)
 	for i, col := range cols {
 		colsToInt[col] = i
+		col_num := fmt.Sprintf("_%d", i+1)
+		colsToInt[col_num] = i
 	}
 
 	// Break the filterString into indivisual filters
@@ -133,19 +135,25 @@ func genFilters(filterString string, cols []string) ([]func([]string) bool, erro
 }
 
 func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
+	// Create a truncated csv reader, using the csvtrunc package
 	csvReader, cols, err := csvtrunc.NewReader(fil, opts.startLine, opts.endLine)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error processing %s: %s while searching for columns\n", fname, err)
 		return
 	}
+	// Write the columns. This will automatically set the widths for the formatted writer
 	output.Write(cols)
 
+	// Create a filtered reader from the csv reader, using the csvfilter package
 	filters, err := genFilters(opts.filtersString, cols)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error processing %s: %s\n", fname, err)
 		return
 	}
-	filteredReader := csvfilter.NewReader(csvReader, filters, true)
+
+	// Create a filtered reader, which only reads out rows that meet the filter
+	// criteria. Then we read all the rows from it into output
+	filteredReader := csvfilter.NewReader(csvReader, filters, !opts.orFilter)
 	for filteredReader.Scan() {
 		err := output.Write(filteredReader.Row())
 		if err != nil {
@@ -153,6 +161,9 @@ func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
 		}
 	}
 
+	// Finally, flush output. Since this is called exactly once per file, the
+	// flush function for a formatted reader resets the line lengths so that
+	// they can be unique for each file.
 	output.Flush()
 
 }
