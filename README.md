@@ -27,6 +27,9 @@ Selection:
 			be printed. See the filters section at
 			github.com/appins/csvcmd
 
+	--or		Set filters to be OR'd rather than AND'd together.
+			Requires only 1 filter to be met to print a line.
+
 Output:
 	-h		Human readable output (default: regular CSV)
 ```
@@ -51,6 +54,10 @@ $ csvcmd -h --end=5 --filter "Sex=F" somecsv.csv
 Filters follow the following format: `filter1;filter2;filter3`.
 As of right now, there is only 1 kind of filter (TODO: Add more).
 Also, for a line to print, every filter must return true.
+
+Note that for all filters, you can specify a column number rather
+than exact name. To do this, just set the column name to be `_#`.
+Ex: the third column can be refered to at `_3`. Counting starts at 1.
 
 Filter types:
 1. Equality: `column_name=value`: Passes when the cell under `column_name` is equal to
