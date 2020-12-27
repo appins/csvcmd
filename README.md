@@ -29,7 +29,7 @@ Selection:
 
 	--or		Set filters to be OR'd rather than AND'd together.
 			Requires only 1 filter to be met to print a line.
-	
+
 	--shown="...	Specify columns which should be shown, seperated with a
 			semicolon. Either use the header row's text or specify
 			the number of the column with `_#`, like `_3`
