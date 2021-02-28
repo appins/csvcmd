@@ -9,11 +9,16 @@ import (
 func genWidths(row []string) []int {
 	var lengths []int
 	for _, j := range row {
-		if len(j) < 10 {
-			lengths = append(lengths, len(j))
-		} else {
-			lengths = append(lengths, 10)
+		lenJ := len(j) + 2
+
+		// Rows should not be longer than 10, nor shorter than 5
+		if lenJ > 10 {
+			lenJ = 10
+		} else if lenJ < 5 {
+			lenJ = 5
 		}
+
+		lengths = append(lengths, lenJ)
 	}
 
 	return lengths
