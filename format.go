@@ -9,9 +9,23 @@ type formattedWrite struct {
 	widths []int
 }
 
+// The built in CSV writer satisfies this interface, and so does the
+// formattedWrite type below. One writes raw CSV, the other writes
+// formatted CSV
+type lineWriter interface {
+	Write([]string) error
+	Flush()
+}
+
 // Write is defined on our formattedWrite struct as displaying each column with
 // a fixed amount of space around it
 func (w *formattedWrite) Write(row []string) error {
+	// We must trim off white space and unicode identifiers
+	for i, j := range row {
+		j = strings.Trim(j, string([]rune{65279}))
+		j = strings.TrimSpace(j)
+		row[i] = j
+	}
 	// We overwrite lengths if they're empty
 	if len(w.widths) == 0 {
 		w.widths = genWidths(row)

@@ -18,14 +18,11 @@ type options struct {
 	filtersString string
 	orFilter      bool
 	columns       string
-}
 
-// The built in CSV writer satisfies this interface, and so does the
-// formattedWrite type below. One writes raw CSV, the other writes
-// formatted CSV
-type lineWriter interface {
-	Write([]string) error
-	Flush()
+	// Split string, numerator, and denominator
+	split  string
+	splitN int
+	splitD int
 }
 
 func main() {
@@ -37,6 +34,7 @@ func main() {
 	flag.StringVar(&opts.filtersString, "filter", "", "Filters on columns, see GitHub for examples")
 	flag.BoolVar(&opts.orFilter, "or", false, "Line will print if any single filter is matched")
 	flag.StringVar(&opts.columns, "shown", "", "Which columns should be output")
+	flag.StringVar(&opts.split, "split", "none", "Return a porton of the file without any overlaps")
 
 	flag.Parse()
 
@@ -73,7 +71,7 @@ func main() {
 
 }
 
-// shwoColumns takes a list of bools and strings and only returns the strings
+// showColumns takes a list of bools and strings and only returns the strings
 // whose matching index in the bool array is true. Ex: ([false, true, false],
 // ["a", "b", "c"]) => ["b"]
 func showColumns(enabled []bool, row []string) []string {

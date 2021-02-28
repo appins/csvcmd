@@ -9,7 +9,8 @@ import (
 func genWidths(row []string) []int {
 	var lengths []int
 	for _, j := range row {
-		lenJ := len(j) + 2
+		lenJ := len([]rune(j)) + 2
+		fmt.Println(j, []rune(j), lenJ)
 
 		// Rows should not be longer than 10, nor shorter than 5
 		if lenJ > 10 {
