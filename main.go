@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/appins/csvcmd/pkg/csvfilter"
 	"github.com/appins/csvcmd/pkg/csvtrunc"
@@ -34,7 +36,7 @@ func main() {
 	flag.StringVar(&opts.filtersString, "filter", "", "Filters on columns, see GitHub for examples")
 	flag.BoolVar(&opts.orFilter, "or", false, "Line will print if any single filter is matched")
 	flag.StringVar(&opts.columns, "shown", "", "Which columns should be output")
-	flag.StringVar(&opts.split, "split", "none", "Return a porton of the file without any overlaps")
+	flag.StringVar(&opts.split, "split", "", "Return a porton of the file without any overlaps")
 
 	flag.Parse()
 
@@ -43,6 +45,36 @@ func main() {
 		writer = &formattedWrite{}
 	} else {
 		writer = csv.NewWriter(os.Stdout)
+	}
+
+	// If we're splitting the output, define a numerator and denominator
+	if opts.split != "" {
+		// First we split the paramter by /, it should be in the format of '1/2'
+		splitFrac := strings.Split(opts.split, "/")
+		if len(splitFrac) != 2 {
+			fmt.Fprintf(os.Stderr, "Error: Expected two numbers split by a '/', found %d\n", len(splitFrac))
+			return
+		}
+
+		// Then convert numerator and denominator to integers
+		var err error
+		opts.splitN, err = strconv.Atoi(splitFrac[0])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Split numerator is not a number\n")
+			return
+		}
+
+		opts.splitD, err = strconv.Atoi(splitFrac[1])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Split denominator is not a number\n")
+			return
+		}
+
+		// Some other misc error checking
+		if opts.splitD == 0 || opts.splitN > opts.splitD {
+			fmt.Fprintf(os.Stderr, "Error: Illogical split parameter\n")
+			return
+		}
 	}
 
 	// The files that should be read
@@ -88,6 +120,21 @@ func showColumns(enabled []bool, row []string) []string {
 // Process a file and write each line ([]string) with output.Write. opts contains
 // command line flags and options
 func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
+	// If the file is split into segments, we should overwrite the start/stop lines
+	if opts.split != "" {
+		count, err := lineCounter(fname)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error processing %s: %s while counting lines\n", fname, err)
+			return
+		}
+		// start of the file
+		opts.startLine = (opts.splitN-1)*count/opts.splitD + 1
+
+		// end of the file
+		opts.endLine = opts.splitN * count / opts.splitD
+
+	}
+
 	// Create a truncated csv reader, using the csvtrunc package
 	csvReader, cols, err := csvtrunc.NewReader(fil, opts.startLine, opts.endLine)
 	if err != nil {
