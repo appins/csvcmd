@@ -1,28 +1,32 @@
 #  Example Usage of `csvcmd`
-As `csvcmd` is a tool that many people could benefit from, I have decided that it would be a worthwhile task to document a few examples use cases of this tool.
+As `csvcmd` is a tool that many people could benefit from, I have decided that it would be a worthwhile task to document a few example use cases of this tool.
 
 ### Prerequisites:
 Before getting started you should have a recent version of Go installed. This library was tested with Go version 1.11.4, which was released a little over two years ago. You will also want to have some CSV file(s) to work with.
 
 ### Installation:
-As README.md states, you'll want to run `go get github.com/appins/csvcmd` to install the tool. Additionally, you'll want to add it to your `$PATH` environment variable. If you're on Linux or MacOS, you can do this by adding some line in your `.bash_profile` with a command like `echo "PATH=$PATH:$GOPATH/bin" >> .bash_profile`. 
+As README.md states, you'll want to run `go get github.com/appins/csvcmd` to install the tool. Additionally, you'll want to add it (your Go bin folder) to your `$PATH` environment variable. If you're on Linux or MacOS, you can do this by adding some line in your `.bash_profile` with a command like `echo "PATH=$PATH:$GOPATH/bin" >> .bash_profile`. 
 
-For Windows, consider just `cd`'ing to the folder (typically `%homepath%/go/src/github.com/appins/csvcmd`) and running `csvcmd.exe`from there. Note that while this tool works on Windows, it's designed primarily for Linux or MacOS users.
+For Windows, consider just `cd`'ing to the folder (typically `%homepath%/go/src/github.com/appins/csvcmd`) and running `csvcmd.exe`from there. Note that while this tool works on Windows, it's designed primarily for Linux and MacOS users.
 
 ## Methods we'll be using:
 #### Viewing files:
 Calling csvcmd without any options prints a csv file without any changes. This is functionally equivalent to `cat`'ing a file. Example: `csvcmd data.csv`.
 
+![image](https://user-images.githubusercontent.com/13598541/109694043-3195f780-7b3f-11eb-9338-fd6f1491f1b5.png)
+
+
 To view a formatted (fixed column width) view, you can use the `-h` option. Example: `csvcmd -h data.csv`.
 
-(insert picture here)
+![image](https://user-images.githubusercontent.com/13598541/109694774-08299b80-7b40-11eb-8b74-57569333b228.png)
+
 
 #### Truncating files:
 There are a few ways to truncate files in order to see only relevant data. They are as follows:
-- filters: filters allow you to see only rows that meet certain criteria. Say you only would like to see contacts who have the first name Alex, or only view wrestlers that have a weight of 150 to 160lbs. To use a filter, use the `-filter` flag. For example, `-filter "name=Alex"`.
-- start and end: if you decide that you only want to see rows in a portion of the file, you can use the `-start` and `-end` flags. For example, if we only wanted to see the rows that are between 50 and 100 inclusive, we would use the flags `-start 50 -end 100`. (Note that you cannot currently use these and split at the same time).
-- shown columns: rather than just truncating rows, it is sometimes helpful to truncate columns. To select only relevant columns, use the `-shown` flag. For example, to only view the name and phone number, use `-shown "name;phone number"`.
-- splits: oftentimes you'll want to split one CSV file into several. To do this, use the `-split` flag. For example, `-split "1/2"` and `-split "2/2"` will produce the first and second half of the file. The files will both have CSV headers, but will have no overlapping data.
+- __filters__: filters allow you to see only rows that meet certain criteria. Say you only would like to see contacts who have the first name Alex, or only view wrestlers that have a weight of 150 to 160lbs. To use a filter, use the `-filter` flag. For example, `-filter "name=Alex"`.
+- __start__ and __end__: if you decide that you only want to see rows in a portion of the file, you can use the `-start` and `-end` flags. For example, if we only wanted to see the rows that are between 50 and 100 inclusive, we would use the flags `-start 50 -end 100`. (Note that you cannot currently use these and split at the same time).
+- __shown__ columns: rather than just truncating rows, it is sometimes helpful to truncate columns. To select only relevant columns, use the `-shown` flag. For example, to only view the name and phone number, use `-shown "name;phone number"`.
+- __split__: oftentimes you'll want to split one CSV file into several. To do this, use the `-split` flag. For example, `-split "1/2"` and `-split "2/2"` will produce the first and second half of the file. The files will both have CSV headers, but will have no overlapping data.
 
 ## A use case: Analyzing flight statistics.
 We begin with the following data:
@@ -30,7 +34,7 @@ We begin with the following data:
 ![Screenshot from 2021-03-01 19-12-11](https://user-images.githubusercontent.com/13598541/109591257-0d480580-7ac2-11eb-912d-2a320fb437c3.png)
 
 
-How could you split this into two groups with zero overlaps? Before we attempt that feat, it may be useful to visualize the data. Do this by typing `csvcmd -h file.csv`. You'll get a much more readable output that looks like this:
+How could you split this into two groups with zero overlaps? Before you attempt that feat, it may be useful to visualize the data. Do this by typing `csvcmd -h file.csv`. You'll get a much more readable output that looks like this:
 
 ![Screenshot from 2021-03-01 19-14-16](https://user-images.githubusercontent.com/13598541/109591585-a24afe80-7ac2-11eb-8e50-bdc014c37f29.png)
 
@@ -52,7 +56,7 @@ We begin with the following data (truncated):
 ![Screenshot from 2021-03-01 19-29-13](https://user-images.githubusercontent.com/13598541/109592634-6d3fab80-7ac4-11eb-8f0e-aa43b106047a.png)
 
 
-It contains a list of many cities around the US along with their latitude and longitude. We have the following question about the data: Which cities are in the West coast states?
+It contains a list of many cities around the US along with their latitude and longitude. We have the following question about the data: Which cities are in the west coast states?
 
 First, filter the data with the filter option. In this case, our command should look something like `csvcmd -h -filter "State=OR;State=WA;State=CA" file.csv`. If we enter that in, we'll get our header row, but zero data back out.
 
@@ -72,5 +76,4 @@ Now, filter the rows and output to a CSV file. The command I used is `csvcmd -fi
 
 
 -Alex Anderson
-
-alexandersonone@gmail.com
+(alexandersonone@gmail.com)
