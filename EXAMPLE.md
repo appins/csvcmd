@@ -1,5 +1,5 @@
 #  Example Usage of `csvcmd`
-As `csvcmd` is a tool that many people could benefit from, I have decided that it would be a worthwhile task to document an example use case of this tool.
+As `csvcmd` is a tool that many people could benefit from, I have decided that it would be a worthwhile task to document a few examples use cases of this tool.
 
 ### Prerequisites:
 Before getting started you should have a recent version of Go installed. This library was tested with Go version 1.11.4, which was released a little over two years ago. You will also want to have some CSV file(s) to work with.
