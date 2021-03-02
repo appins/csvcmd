@@ -1,4 +1,4 @@
-# `csvcmd` Example Usage
+#  Example Usage of `csvcmd`
 As `csvcmd` is a tool that many people could benefit from, I have decided that it would be a worthwhile task to document an example use case of this tool.
 
 ### Prerequisites:
