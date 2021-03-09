@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/appins/csvcmd/pkg/csvfilter"
+	"github.com/appins/csvcmd/pkg/csvnewcol"
 	"github.com/appins/csvcmd/pkg/csvtrunc"
 )
 
@@ -25,6 +26,9 @@ type options struct {
 	split  string
 	splitN int
 	splitD int
+
+	// Formulas for new columns
+	newcols string
 }
 
 func main() {
@@ -37,6 +41,7 @@ func main() {
 	flag.BoolVar(&opts.orFilter, "or", false, "Line will print if any single filter is matched")
 	flag.StringVar(&opts.columns, "shown", "", "Which columns should be output")
 	flag.StringVar(&opts.split, "split", "", "Return a porton of the file without any overlaps")
+	flag.StringVar(&opts.newcols, "newcols", "", "Create a new column from existing columns")
 
 	flag.Parse()
 
@@ -142,6 +147,16 @@ func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
 		return
 	}
 
+	// Create a reader with new columns
+	exprs, err := csvnewcol.CreateNewColumnExprs(opts.newcols, cols)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error processing %s: %v while creating custom columns")
+	}
+	newColReader := csvnewcol.NewReader(csvReader, exprs)
+
+	// Overwrite the header column with our new column data
+	cols = append(cols, csvnewcol.GenColumns(exprs, cols)...)
+
 	// Create the filter functions, that is, functions that take a row and return bools
 	filters, err := genFilters(opts.filtersString, cols)
 	if err != nil {
@@ -163,7 +178,7 @@ func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
 
 	// Create a filtered reader, which only reads out rows that meet the filter
 	// criteria. Then we read all the rows from it into output
-	filteredReader := csvfilter.NewReader(csvReader, filters, !opts.orFilter)
+	filteredReader := csvfilter.NewReader(newColReader, filters, !opts.orFilter)
 	for filteredReader.Scan() {
 		// We only show the columns that we processed with showColumns
 		processed := showColumns(enabled, filteredReader.Row())
