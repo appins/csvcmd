@@ -31,8 +31,8 @@ func genFilters(filterString string, cols []string) ([]func([]string) bool, erro
 	colsToInt := make(map[string]int)
 	for i, col := range cols {
 		colsToInt[col] = i
-		col_num := fmt.Sprintf("_%d", i+1)
-		colsToInt[col_num] = i
+		colNum := fmt.Sprintf("_%d", i+1)
+		colsToInt[colNum] = i
 	}
 
 	// Break the filterString into indivisual filters
@@ -69,8 +69,8 @@ func genColumns(columnFlag string, cols []string) ([]bool, error) {
 	colsToInt := make(map[string]int)
 	for i, col := range cols {
 		colsToInt[col] = i
-		col_num := fmt.Sprintf("_%d", i+1)
-		colsToInt[col_num] = i
+		colNum := fmt.Sprintf("_%d", i+1)
+		colsToInt[colNum] = i
 	}
 
 	// Each column has a bool assocaited with it, if it should show or not

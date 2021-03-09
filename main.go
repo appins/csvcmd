@@ -150,7 +150,7 @@ func processFile(fil io.Reader, fname string, opts options, output lineWriter) {
 	// Create a reader with new columns
 	exprs, err := csvnewcol.CreateNewColumnExprs(opts.newcols, cols)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error processing %s: %v while creating custom columns")
+		fmt.Fprintf(os.Stderr, "Error processing %s: %v while creating custom columns", fname, err)
 	}
 	newColReader := csvnewcol.NewReader(csvReader, exprs)
 

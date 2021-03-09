@@ -5,6 +5,7 @@ import (
 	"io"
 )
 
+// Reader is used for reading a csv file between the start and end parameters
 type Reader struct {
 	reader *csv.Reader
 	// The line that we're going to be reading next, 1-based indexing
@@ -58,6 +59,7 @@ func (r *Reader) Read() ([]string, error) {
 	return row, err
 }
 
+// Line returns the current line number
 func (r *Reader) Line() int {
 	return r.line
 }

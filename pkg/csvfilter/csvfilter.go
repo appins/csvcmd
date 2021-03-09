@@ -6,6 +6,7 @@ type csvReader interface {
 	Read() ([]string, error)
 }
 
+// Reader reads only rows that meet the filters from a csv filter
 type Reader struct {
 	reader     csvReader
 	filters    []func([]string) bool
